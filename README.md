@@ -103,7 +103,7 @@ private key bound to this domain, and the server checks the signature with the s
 - The WebAuthn user ID is a random opaque value (`users.webauthn_user_id`), never the
   database ID or the email.
 - The button label adapts to the device ("Face ID or Touch ID", "Windows Hello",
-  "fingerprint or face unlock").
+  "fingerprint or screen lock").
 
 ### One active device (`src/lib/session.ts`)
 
