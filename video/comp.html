@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Keystone demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=block" rel="stylesheet" />
+<script src="assets/boxes.js"></script>
+<style>
+  :root {
+    --bg: #0f0f0e; --surface: #181816; --muted-surface: #21201d;
+    --ink: #f2f0ec; --muted: #a19c93; --faint: #6f6a62; --line: #2a2926; --line-strong: #3a3834;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+  #stage {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    font-family: "Geist", system-ui, sans-serif; color: var(--ink);
+    background:
+      radial-gradient(1200px 700px at 18% 12%, #1c1a17 0%, rgba(28,26,23,0) 60%),
+      radial-gradient(900px 600px at 88% 95%, #17161400 0%, #15141200 100%),
+      var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .abs { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+
+  /* Logo lockup: same proportions as the app's <Logo/> (28px mark, 8px gap, 16px text) ×3.43 */
+  #lockup { display: flex; align-items: center; gap: 27px; transform-origin: 0 0; white-space: nowrap; }
+  .mark { width: 96px; height: 96px; border-radius: 27px; background: var(--ink); display: grid; place-items: center; flex: none; }
+  .mark svg { width: 55px; height: 55px; color: var(--bg); }
+  #lockupWord { font-size: 55px; font-weight: 600; letter-spacing: -0.025em; overflow: hidden; }
+  #lockupWord span { display: inline-block; }
+
+  #headline { width: 1920px; text-align: center; font-size: 62px; font-weight: 600; letter-spacing: -0.03em; }
+  #headline .w { display: inline-block; margin: 0 0.12em; }
+
+  /* Browser frame */
+  #browser { width: 1040px; height: 690px; border-radius: 18px; background: #141413;
+    border: 1px solid var(--line-strong); overflow: hidden; transform-origin: 0 0;
+    box-shadow: 0 40px 80px -30px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.02); }
+  #bbar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--line); background: #171715; }
+  #bbar i { width: 11px; height: 11px; border-radius: 50%; background: #3a3834; display: block; }
+  #burl { margin-left: 18px; height: 24px; flex: 0 0 380px; border-radius: 8px; background: #21201d; color: var(--muted);
+    font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; letter-spacing: .01em; }
+  #bview { position: relative; width: 1040px; height: 650px; overflow: hidden; background: var(--bg); }
+  #bcam, #pcam { transform-origin: 0 0; }
+  .shot { position: absolute; left: 0; top: 0; display: none; }
+  #bcam .shot { width: 1280px; }
+  #pcam .shot { width: 390px; }
+  #bscrim { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+
+  /* Phone frame */
+  #phone { width: 330px; height: 691px; border-radius: 54px; background: #0b0b0a; padding: 10px;
+    border: 1px solid #3a3834; box-shadow: 0 40px 80px -30px rgba(0,0,0,.8), inset 0 0 0 2px #1d1c1a; }
+  #pview { position: relative; width: 310px; height: 671px; border-radius: 44px; overflow: hidden; background: var(--bg); }
+
+  .ring { position: absolute; border: 2.5px solid var(--ink); pointer-events: none; opacity: 0;
+    box-shadow: 0 0 0 7px rgba(242,240,236,.10), 0 0 34px rgba(242,240,236,.22); }
+
+  /* Captions */
+  .cap { position: absolute; left: 112px; width: 600px; top: 0; height: 1080px; display: flex; flex-direction: column; justify-content: center; }
+  .cap > * { will-change: transform, opacity; opacity: 0; }
+  .eyebrow { font-size: 15px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+  .title { font-size: 52px; line-height: 1.04; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 20px; }
+  .body { font-size: 23px; line-height: 1.45; color: var(--muted); max-width: 500px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; opacity: 1 !important; }
+  .chip { font-size: 17px; font-weight: 500; padding: 9px 15px; border-radius: 999px; border: 1px solid var(--line-strong);
+    background: var(--surface); color: var(--ink); opacity: 0; will-change: transform, opacity; }
+  .chip b { font-weight: 600; }
+
+  .label { padding: 7px 13px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line-strong);
+    font-size: 15px; font-weight: 500; color: var(--ink); display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.18); }
+  .dot.off { background: #f59e0b; box-shadow: 0 0 0 4px rgba(245,158,11,.18); }
+
+  #sheet { border-radius: 30px; overflow: hidden; box-shadow: 0 50px 90px -30px rgba(0,0,0,.85); }
+  #sheet img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; display: block; }
+
+  #stack { width: 1920px; text-align: center; }
+  .stackTitle { font-size: 15px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+  .pill { position: absolute; font-size: 26px; font-weight: 500; padding: 14px 24px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: var(--surface); white-space: nowrap; }
+  #stat { font-size: 64px; font-weight: 600; letter-spacing: -0.03em; }
+  #facts { font-size: 22px; color: var(--muted); }
+  #url { font-size: 44px; font-weight: 600; letter-spacing: -0.02em; }
+  #gh { font-size: 24px; color: var(--muted); }
+  #credit { font-size: 17px; color: var(--faint); letter-spacing: .04em; }
+  #fade { position: absolute; inset: 0; background: #000; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- product frames -->
+  <div id="browser" class="abs">
+    <div id="bbar"><i></i><i></i><i></i>
+      <div id="burl"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>keystone-auth.vercel.app</div>
+    </div>
+    <div id="bview"><div id="bcam" class="abs"></div><div id="bscrim"></div><div id="brings" class="abs"></div></div>
+  </div>
+  <div id="phone" class="abs"><div id="pview"><div id="pcam" class="abs"></div><div id="prings" class="abs"></div></div></div>
+  <div id="lblLaptop" class="abs label"><span class="dot"></span><span class="t">Laptop · Chrome on Windows</span></div>
+  <div id="lblPhone" class="abs label"><span class="dot"></span>iPhone · Safari</div>
+  <div id="sheet" class="abs"><img src="assets/android-passkey.png" alt="" /></div>
+
+  <div id="caps"></div>
+
+  <div id="lockup" class="abs">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v5c0 4.4 3.4 8.4 8 9 4.6-.6 8-4.6 8-9V7z"/><path d="m9 12 2 2 4-4"/></svg></div>
+    <div id="lockupWord"><span>Keystone</span></div>
+  </div>
+  <div id="headline" class="abs"></div>
+
+  <div id="stackTitle" class="abs stackTitle" style="width:1920px;text-align:center">Under the hood</div>
+  <div id="pills"></div>
+  <div id="stat" class="abs" style="width:1920px;text-align:center">34 tests passing</div>
+  <div id="facts" class="abs" style="width:1920px;text-align:center">HMAC-hashed codes&nbsp;&nbsp;·&nbsp;&nbsp;Row-locked sessions&nbsp;&nbsp;·&nbsp;&nbsp;Row-level security on every table</div>
+  <div id="url" class="abs" style="width:1920px;text-align:center">keystone-auth.vercel.app</div>
+  <div id="gh" class="abs" style="width:1920px;text-align:center">github.com/Aditya060806/keystone-auth</div>
+  <div id="credit" class="abs" style="width:1920px;text-align:center">Built by Aditya Pandey&nbsp;&nbsp;·&nbsp;&nbsp;Next.js · TypeScript · WebAuthn</div>
+  <div id="fade"></div>
+</div>
+
+<script>
+// ───────────────────────── easing & interpolation ─────────────────────────
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const bez = (x1, y1, x2, y2) => {
+  // cubic-bezier solver
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const sx = (t) => ((ax * t + bx) * t + cx) * t, sy = (t) => ((ay * t + by) * t + cy) * t;
+  const dx = (t) => (3 * ax * t + 2 * bx) * t + cx;
+  return (x) => {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 8; i++) { const d = dx(t); if (Math.abs(d) < 1e-6) break; t -= (sx(t) - x) / d; }
+    return sy(clamp(t));
+  };
+};
+const E = {
+  out: bez(0.16, 1, 0.3, 1),          // strong ease-out for entrances
+  inOut: bez(0.65, 0, 0.35, 1),       // camera moves
+  in: bez(0.55, 0, 1, 0.45),          // exits / push-throughs
+  soft: bez(0.33, 0, 0.2, 1),
+  lin: (x) => x,
+};
+const prog = (t, t0, t1, e = E.out) => e(clamp((t - t0) / (t1 - t0)));
+const lerp = (a, b, u) => a + (b - a) * u;
+const lerpObj = (a, b, u) => { const o = {}; for (const k in a) o[k] = typeof a[k] === "number" ? lerp(a[k], b[k], u) : (u < 1 ? a[k] : b[k]); return o; };
+
+/** Piecewise keyframes: [[t, value, easeIntoThisKey?], ...]. Equal times = hard cut. */
+function kf(t, keys, def = E.inOut) {
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 0; i < keys.length - 1; i++) {
+    const [t0, v0] = keys[i], [t1, v1, e = def] = keys[i + 1];
+    if (t < t1) {
+      if (t1 === t0) return v1;
+      const u = e((t - t0) / (t1 - t0));
+      return typeof v0 === "number" ? lerp(v0, v1, u) : lerpObj(v0, v1, u);
+    }
+  }
+  return keys[keys.length - 1][1];
+}
+/** Step function: [[t, value], ...] → last value whose t <= now. */
+const step = (t, keys) => { let v = keys[0][1]; for (const [k, val] of keys) if (t >= k) v = val; return v; };
+
+const $ = (id) => document.getElementById(id);
+const set = (el, { x = 0, y = 0, s = 1, o = 1, r = 0 } = {}) => {
+  el.style.transform = `translate(${x}px, ${y}px) scale(${s})${r ? ` rotate(${r}deg)` : ""}`;
+  el.style.opacity = o;
+};
+
+// ───────────────────────── assets ─────────────────────────
+const B = window.BOXES;
+const DESKTOP = ["d01-landing","d02-signup-empty","d03-signup-phone","d04-signup-errors","d05-signup-filled",
+  "d06-code-0","d06-code-1","d06-code-2","d06-code-3","d06-code-4","d06-code-5","d06-code-6","d07-code-wrong",
+  "d08-dashboard","d09-login-replaced","d10-login","d11-dashboard-activity"];
+const PHONE = ["p01-login","p02-code","p03-dashboard"];
+const imgs = {};
+for (const n of DESKTOP) { const i = new Image(); i.src = `assets/${n}.png`; i.className = "shot"; $("bcam").appendChild(i); imgs[n] = i; }
+for (const n of PHONE) { const i = new Image(); i.src = `assets/${n}.png`; i.className = "shot"; $("pcam").appendChild(i); imgs[n] = i; }
+const pageH = (n) => imgs[n].naturalHeight / (n.startsWith("p") ? 3 : 2);
+function show(group, name) { for (const n of group) imgs[n].style.display = n === name ? "block" : "none"; }
+
+// ───────────────────────── geometry ─────────────────────────
+const VW = 1040, VH = 650, S0 = VW / 1280;          // browser view
+const PW = 310, PH = 671, P0 = PW / 390;           // phone view
+const LARGE = { x: 760, y: 195, s: 1 };            // browser frame layouts
+const SPLIT = { x: 690, y: 300, s: 0.72 };
+const PHONE_IN = { x: 1500, y: 195 };
+
+const center = (b, dx = 0, dy = 0) => ({ cx: b.x + b.w / 2 + dx, cy: b.y + b.h / 2 + dy });
+const cam = (b, z, dx = 0, dy = 0) => ({ ...center(b, dx, dy), z });
+const FULL = { cx: 640, cy: 400, z: 1 };
+const union = (...bs) => { const x = Math.min(...bs.map((b) => b.x)), y = Math.min(...bs.map((b) => b.y));
+  return { x, y, w: Math.max(...bs.map((b) => b.x + b.w)) - x, h: Math.max(...bs.map((b) => b.y + b.h)) - y }; };
+
+function applyCam(c, name) {
+  const s = S0 * c.z;
+  const hw = VW / 2 / s, hh = VH / 2 / s, ph = pageH(name);
+  const cx = c.z >= 1 ? clamp(c.cx, hw, 1280 - hw) : 640;
+  const cy = ph > 2 * hh ? clamp(c.cy, hh, ph - hh) : ph / 2;
+  const tx = VW / 2 - cx * s, ty = VH / 2 - cy * s;
+  $("bcam").style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+  return (b, pad = 0) => ({ x: (b.x - pad) * s + tx, y: (b.y - pad) * s + ty, w: (b.w + 2 * pad) * s, h: (b.h + 2 * pad) * s, s });
+}
+function applyPhoneCam(cy, name) {
+  const s = P0, ph = pageH(name), hh = PH / 2 / s;
+  const c = ph > 2 * hh ? clamp(cy, hh, ph - hh) : hh;
+  const ty = PH / 2 - c * s;
+  $("pcam").style.transform = `translate(0px, ${ty}px) scale(${s})`;
+  return (b, pad = 0) => ({ x: (b.x - pad) * s, y: (b.y - pad) * s + ty, w: (b.w + 2 * pad) * s, h: (b.h + 2 * pad) * s, s });
+}
+
+// Rings (highlight outlines) live in view space so their stroke never scales with zoom.
+const ringEls = {};
+function ring(layer, id, rect, t, t0, t1, radius = 14) {
+  const el = ringEls[id] ??= (() => { const d = document.createElement("div"); d.className = "ring"; $(layer).appendChild(d); return d; })();
+  const a = prog(t, t0, t0 + 0.35), b = 1 - prog(t, t1 - 0.25, t1, E.soft);
+  const o = t < t0 || t > t1 ? 0 : Math.min(a, b);
+  const grow = lerp(1.12, 1, a);
+  el.style.opacity = o;
+  if (o <= 0) return;
+  const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2, w = rect.w * grow, h = rect.h * grow;
+  Object.assign(el.style, { left: `${cx - w / 2}px`, top: `${cy - h / 2}px`, width: `${w}px`, height: `${h}px`, borderRadius: `${radius}px` });
+}
+
+// ───────────────────────── captions ─────────────────────────
+const CAPS = [
+  { t0: 5.6, t1: 8.5, eyebrow: "Keystone", title: "No passwords.", body: "Use your device's biometrics, or a one-time code.",
+    chips: ["One-time codes", "Face ID & fingerprint", "One device at a time"] },
+  { t0: 9.2, t1: 11.8, eyebrow: "Step 1 · Sign up", title: "Email or phone number", body: "Phone numbers are stored in international format, e.g. +44 7911 123456." },
+  { t0: 12.0, t1: 14.3, eyebrow: "Step 1 · Sign up", title: "Your details", body: "Surname and date of birth. No account exists until the code is verified." },
+  { t0: 14.5, t1: 18.4, eyebrow: "Step 1 · Sign up", title: "Checked on the server", body: "Real calendar dates, 13 or older, and names with letters, hyphens and apostrophes." },
+  { t0: 18.6, t1: 24.4, eyebrow: "Step 2 · Verify", title: "A 6-digit code", body: "Sent by email with Resend, or by SMS with Twilio.",
+    chips: ["Expires in 5 min", "5 tries, then locked", "Single use", "Stored as an HMAC"] },
+  { t0: 24.7, t1: 27.9, eyebrow: "Step 3 · Biometrics", title: "Face ID & fingerprint", body: "Add a passkey in one tap. Your biometric never leaves the device.",
+    chips: ["WebAuthn", "SimpleWebAuthn"] },
+  { t0: 28.1, t1: 31.7, eyebrow: "Real prompt · Android", title: "Bound to this site", body: "The passkey only works on keystone‑auth.vercel.app. A look-alike site can't use it." },
+  { t0: 31.9, t1: 36.6, eyebrow: "Step 4 · Sign in", title: "One tap. No typing.", body: "The device offers its passkey. No username needed.",
+    chips: ["Face ID", "Touch ID", "Fingerprint", "Windows Hello"] },
+  { t0: 36.9, t1: 40.7, eyebrow: "One active device", title: "One device at a time", body: "Signing in on a new device signs the old one out straight away." },
+  { t0: 40.9, t1: 44.3, eyebrow: "One active device", title: "Laptop signed out", body: "Every request from it is rejected, and it's told where you signed in." },
+  { t0: 44.6, t1: 49.3, eyebrow: "Audit trail", title: "Every sign-in logged", body: "Codes, passkeys, new devices, and the device that was signed out." },
+];
+const capEls = CAPS.map((c) => {
+  const d = document.createElement("div"); d.className = "cap";
+  d.innerHTML = `<div class="eyebrow">${c.eyebrow}</div><div class="title">${c.title}</div><div class="body">${c.body}</div>` +
+    (c.chips ? `<div class="chips">${c.chips.map((x) => `<span class="chip">${x}</span>`).join("")}</div>` : "");
+  $("caps").appendChild(d); return d;
+});
+function captions(t) {
+  CAPS.forEach((c, i) => {
+    const parts = [...capEls[i].querySelectorAll(".eyebrow,.title,.body,.chip")];
+    // The previous card must be fully gone before this one rises (clean hand-off, no doubled text).
+    const prev = CAPS[i - 1];
+    const t0 = prev ? Math.max(c.t0, prev.t1 + 0.38) : c.t0;
+    parts.forEach((p, j) => {
+      const delay = j * 0.06;
+      const a = prog(t, t0 + delay, t0 + delay + 0.6);
+      const b = prog(t, c.t1 + j * 0.03, c.t1 + j * 0.03 + 0.35, E.in);
+      set(p, { y: lerp(28, 0, a) - 22 * b, o: Math.min(a, 1 - b) });
+    });
+  });
+}
+
+// ───────────────────────── stack pills ─────────────────────────
+const STACK = [["Next.js 16", "TypeScript", "PostgreSQL · Supabase", "Drizzle ORM"], ["SimpleWebAuthn", "Resend", "Twilio", "Vercel"]];
+const pillEls = [];
+STACK.forEach((row, r) => row.forEach((txt) => { const p = document.createElement("div"); p.className = "pill"; p.textContent = txt; $("pills").appendChild(p); pillEls.push({ el: p, r }); }));
+function layoutPills() {
+  STACK.forEach((row, r) => {
+    const els = pillEls.filter((p) => p.r === r).map((p) => p.el);
+    const widths = els.map((e) => e.offsetWidth), gap = 18, total = widths.reduce((a, b) => a + b, 0) + gap * (els.length - 1);
+    let x = 960 - total / 2;
+    els.forEach((e, i) => { e.dataset.x = x; e.dataset.y = 400 + r * 92; e.dataset.w = widths[i]; x += widths[i] + gap; });
+  });
+}
+
+// ───────────────────────── the timeline ─────────────────────────
+let lockupW = 0, lockupH = 96;
+const WORDS = "Sign in with a glance, not a password.".split(" ");
+$("headline").innerHTML = WORDS.map((w) => `<span class="w">${w}</span>`).join("");
+
+function seek(t) {
+  // ── 1. Intro lockup + headline (0–5 s), outro reuse (55–60 s) ──
+  const landingLogo = B["d01-landing"].logo;
+  const logoTarget = { x: LARGE.x + landingLogo.x * S0, y: LARGE.y + 40 + landingLogo.y * S0, h: landingLogo.h * S0 };
+  const introCenter = { x: 960 - lockupW / 2, y: 430 };
+  const outroCenter = { x: 960 - lockupW / 2, y: 300 };
+  const flyScale = logoTarget.h / lockupH;
+  // mark-only stage: word hidden behind, mark centred
+  const wordReveal = t < 30 ? prog(t, 0.9, 1.7) : prog(t, 55.55, 56.25);
+  const markOnlyShift = (lockupW / 2 - 48) * (1 - wordReveal);   // keep the visible part centred while the word slides out
+  let L;
+  if (t < 30) {
+    L = kf(t, [[0, { x: introCenter.x + markOnlyShift, y: introCenter.y, s: 1 }], [4.25, { x: introCenter.x, y: introCenter.y, s: 1 }],
+      [5.0, { x: logoTarget.x, y: logoTarget.y, s: flyScale }, E.inOut]]);
+    if (t < 4.25) L = { x: introCenter.x + markOnlyShift, y: introCenter.y, s: 1 };
+    const appear = prog(t, 0.2, 0.9);
+    const o = t < 5.45 ? appear : 0;
+    set($("lockup"), { x: L.x, y: L.y, s: L.s * lerp(0.82, 1, appear), o });
+  } else {
+    const appear = prog(t, 55.0, 55.7);
+    set($("lockup"), { x: outroCenter.x + markOnlyShift, y: outroCenter.y + lerp(30, 0, appear), s: lerp(0.6, 1, appear), o: appear * (t >= 54.9 ? 1 : 0) });
+  }
+  $("lockupWord").style.clipPath = `inset(0 ${100 - wordReveal * 100}% 0 0)`;
+  $("lockupWord").firstChild.style.transform = `translateX(${lerp(-40, 0, wordReveal)}px)`;
+
+  // headline words
+  [...$("headline").children].forEach((w, i) => {
+    const a = prog(t, 1.9 + i * 0.07, 2.6 + i * 0.07), b = prog(t, 4.0 + i * 0.03, 4.45 + i * 0.03, E.in);
+    set(w, { y: lerp(30, 0, a) - 30 * b, o: Math.min(a, 1 - b) });
+  });
+  set($("headline"), { y: 600 });
+
+  // ── 2. Browser frame layout ──
+  const reveal = prog(t, 4.95, 5.9, E.inOut);
+  const frame = kf(t, [[0, LARGE], [31.9, LARGE], [32.8, SPLIT], [44.5, SPLIT], [45.4, LARGE], [49.4, LARGE], [50.2, { ...LARGE, y: LARGE.y + 120, s: 0.94 }, E.in]]);
+  const frameO = t < 49.4 ? 1 : 1 - prog(t, 49.4, 50.2, E.in);
+  const dimmed = kf(t, [[27.6, 1], [28.2, 0.965], [31.4, 0.965], [32.0, 1]]);
+  set($("browser"), { x: frame.x + (1 - dimmed) * 520 * frame.s, y: frame.y + (1 - dimmed) * 345 * frame.s, s: frame.s * dimmed, o: t < 4.95 || t > 50.3 ? 0 : frameO });
+  // circular reveal grows from the landing-page logo the lockup just landed on
+  const rx = landingLogo.x * S0 + 14 * S0, ry = 40 + landingLogo.y * S0 + 14 * S0;
+  $("browser").style.clipPath = reveal < 1 ? `circle(${lerp(10, 1300, reveal)}px at ${rx}px ${ry}px)` : "none";
+  $("bscrim").style.opacity = kf(t, [[27.6, 0], [28.2, 0.55], [31.4, 0.55], [32.0, 0]]);
+
+  // ── 3. Browser content + camera ──
+  const name = step(t, [
+    [0, "d01-landing"], [8.95, "d02-signup-empty"], [10.4, "d03-signup-phone"], [11.7, "d05-signup-filled"],
+    [14.5, "d04-signup-errors"], [16.9, "d05-signup-filled"], [18.5, "d06-code-0"], [19.8, "d07-code-wrong"],
+    [21.4, "d06-code-0"], [21.7, "d06-code-1"], [22.0, "d06-code-2"], [22.3, "d06-code-3"], [22.6, "d06-code-4"],
+    [22.9, "d06-code-5"], [23.2, "d06-code-6"], [24.95, "d08-dashboard"], [32.0, "d10-login"], [36.6, "d08-dashboard"],
+    [40.8, "d09-login-replaced"], [44.6, "d11-dashboard-activity"],
+  ]);
+  show(DESKTOP, name);
+  const su = B.signup, cd = B.code, db = B["d08-dashboard"], act = B["d11-dashboard-activity"];
+  const c = kf(t, [
+    [0, FULL], [5.6, FULL], [8.2, cam(B["d01-landing"].h1, 1.12, 0, 60), E.soft],
+    [8.95, cam(B["d01-landing"].cta, 3.2), E.in],                          // push into the CTA…
+    [8.95, cam(su.card, 1.75)], [9.8, cam(su.card, 1.18), E.out],          // …and keep pushing on the new page
+    [11.6, cam(su.card, 1.18)], [12.2, cam(union(su.surname, su.dob), 1.7), E.inOut],
+    [14.2, cam(union(su.surname, su.dob), 1.7)], [14.5, cam(B["d04-signup-errors"].card, 1.2)],
+    [16.7, cam(B["d04-signup-errors"].card, 1.2)], [16.9, cam(su.card, 1.18)], [17.4, cam(su.continue, 1.6, 0, -40), E.inOut],
+    [18.5, cam(su.continue, 1.6, 0, -40)], [18.5, cam(cd.card, 1.6)], [19.2, cam(cd.card, 1.25), E.out],
+    [19.6, cam(union(cd.sentTo, cd.otp), 1.85, 0, 40), E.inOut],
+    [24.2, cam(union(cd.sentTo, cd.otp), 1.9, 0, 40)], [24.95, cam(cd.otp, 4.2), E.in],   // push-through…
+    [24.95, cam(db.prompt, 2.0)], [25.8, cam(union(db.prompt, db.device), 1.05, 0, 10), E.out], // …lands on the dashboard
+    [32.0, cam(union(db.prompt, db.device), 1.05, 0, 10)], [32.0, cam(B["d10-login"].card, 1.75)], [32.8, cam(B["d10-login"].card, 1.25), E.out],
+    [36.6, cam(B["d10-login"].card, 1.25)], [36.6, cam(db.device, 2.1)], [37.3, cam(db.device, 1.65), E.out],
+    [40.8, cam(db.device, 1.65)], [40.8, cam(B["d09-login-replaced"].banner, 2.4)], [41.5, cam(B["d09-login-replaced"].banner, 1.9, 0, 30), E.out],
+    [44.6, cam(B["d09-login-replaced"].banner, 1.9, 0, 30)], [44.6, cam(act.activity, 1.6, 0, -120)], [45.4, cam(act.activity, 1.3, 0, -120), E.out],
+    [49.0, cam(act.activity, 1.3, 0, 110), E.soft],
+  ]);
+  // a short horizontal shake on the wrong code (UI feedback, not a transition)
+  const shake = t > 19.8 && t < 20.25 ? Math.sin((t - 19.8) * 60) * 7 * (1 - (t - 19.8) / 0.45) : 0;
+  const toView = applyCam({ ...c, cx: c.cx - shake / (S0 * c.z) }, name);
+
+  ring("brings", "tabs", toView(su.tabs, 5), t, 9.9, 11.6, 16);
+  ring("brings", "fields", toView(union(su.surname, su.dob), 10), t, 12.4, 14.2, 18);
+  ring("brings", "continue", toView(su.continue, 5), t, 17.5, 18.45, 16);
+  ring("brings", "otp", toView(cd.otp, 7), t, 21.5, 23.5, 20);
+  ring("brings", "wrong", toView(B["d07-code-wrong"].alert, 5), t, 19.95, 21.35, 16);
+  ring("brings", "setup", toView(db.setup, 5), t, 26.0, 27.62, 16);
+  ring("brings", "loginPasskey", toView(B["d10-login"].passkey, 5), t, 32.9, 36.4, 16);
+  ring("brings", "device", toView(db.device, 6), t, 37.4, 40.6, 20);
+  ring("brings", "banner", toView(B["d09-login-replaced"].banner, 6), t, 41.3, 44.4, 18);
+
+  // ── 4. Passkey sheet: the Set-up button's ring becomes the real Android prompt ──
+  const btn = toView(db.setup, 5);
+  const fs = frame.s * dimmed, fx = frame.x + (1 - dimmed) * 520 * frame.s, fy = frame.y + (1 - dimmed) * 345 * frame.s;
+  const btnScreen = { x: fx + btn.x * fs, y: fy + (40 + btn.y) * fs, w: btn.w * fs, h: btn.h * fs };
+  const sheetW = 600, sheetH = Math.round(600 * 750 / 809);
+  const sheetEnd = { x: 1280 - sheetW / 2, y: 540 - sheetH / 2, w: sheetW, h: sheetH };
+  const m = prog(t, 27.6, 28.35, E.inOut), out = prog(t, 31.35, 31.95, E.in);
+  const R = lerpObj(btnScreen, sheetEnd, m);
+  const sheet = $("sheet");
+  Object.assign(sheet.style, { width: `${R.w}px`, height: `${R.h}px`, borderRadius: `${lerp(12, 30, m)}px` });
+  set(sheet, { x: R.x, y: R.y + out * 760, o: t < 27.6 || t > 31.95 ? 0 : 1 });
+
+  // ── 5. Phone ──
+  const ph = kf(t, [[0, { x: 1960, y: PHONE_IN.y }], [32.1, { x: 1960, y: PHONE_IN.y }], [32.9, PHONE_IN, E.out],
+    [44.4, PHONE_IN], [45.0, { x: 1960, y: PHONE_IN.y }, E.in]]);
+  set($("phone"), { x: ph.x, y: ph.y, o: t > 32.0 && t < 45.1 ? 1 : 0 });
+  const pname = step(t, [[0, "p01-login"], [38.6, "p02-code"], [39.4, "p03-dashboard"]]);
+  show(PHONE, pname);
+  const pdev = B["p03-dashboard"].device;
+  const pcy = pname === "p03-dashboard" ? kf(t, [[39.4, pdev.y + pdev.h / 2 + 40], [40.2, pdev.y + pdev.h / 2 - 40, E.out]]) : 0;
+  const toPhone = applyPhoneCam(pcy, pname);
+  ring("prings", "pPasskey", toPhone(B["p01-login"].passkey, 4), t, 33.3, 36.4, 14);
+  ring("prings", "pDevice", toPhone(pdev, 5), t, 39.7, 41.2, 18);
+
+  // device labels (split-screen only)
+  const lblO = Math.min(prog(t, 37.0, 37.5), 1 - prog(t, 44.2, 44.5, E.in));
+  set($("lblLaptop"), { x: SPLIT.x, y: SPLIT.y - 52, o: t > 36.9 && t < 44.6 ? lblO : 0 });
+  set($("lblPhone"), { x: PHONE_IN.x + 8, y: PHONE_IN.y - 52 + 0, o: t > 36.9 && t < 44.6 ? lblO : 0 });
+  const signedOut = t >= 40.8;
+  $("lblLaptop").querySelector(".dot").className = "dot" + (signedOut ? " off" : "");
+  $("lblLaptop").querySelector(".t").textContent = signedOut ? "Laptop · signed out" : "Laptop · Chrome on Windows";
+  const phoneOn = t >= 39.4;
+  $("lblPhone").querySelector(".dot").className = "dot" + (phoneOn ? "" : " off");
+  $("lblPhone").lastChild.textContent = phoneOn ? "iPhone · signed in" : "iPhone · Safari";
+  // phone label sits above the phone
+  $("lblPhone").style.top = "0px";
+
+  // ── 6. Captions ──
+  captions(t);
+
+  // ── 7. Stack ──
+  const st = prog(t, 50.3, 50.9), stOut = prog(t, 54.5, 55.2, E.in);
+  set($("stackTitle"), { y: 330 + lerp(20, 0, st), o: Math.min(st, 1 - stOut) });
+  pillEls.forEach(({ el }, i) => {
+    const a = prog(t, 50.5 + i * 0.07, 51.1 + i * 0.07);
+    const x = +el.dataset.x, y = +el.dataset.y, w = +el.dataset.w;
+    const k = prog(t, 54.4 + (i % 4) * 0.03, 55.1, E.in);             // collapse into the centre (the logo)
+    const cx = x + w / 2, cy = y + 30;
+    set(el, { x: lerp(x, 960 - w / 2, k) + (cx - 960) * 0, y: lerp(y + lerp(26, 0, a), 470, k), s: lerp(1, 0.3, k), o: Math.min(a, 1 - k) });
+  });
+  const s1 = prog(t, 51.8, 52.4), s2 = prog(t, 52.3, 52.9);
+  set($("stat"), { y: 610 + lerp(24, 0, s1) - 40 * stOut, o: Math.min(s1, 1 - stOut) });
+  set($("facts"), { y: 700 + lerp(24, 0, s2) - 40 * stOut, o: Math.min(s2, 1 - stOut) });
+
+  // ── 8. Outro ──
+  const u1 = prog(t, 56.1, 56.7), u2 = prog(t, 56.4, 57.0), u3 = prog(t, 56.75, 57.35);
+  set($("url"), { y: 470 + lerp(24, 0, u1), o: u1 });
+  set($("gh"), { y: 545 + lerp(24, 0, u2), o: u2 });
+  set($("credit"), { y: 640 + lerp(24, 0, u3), o: u3 });
+
+  // open from black / close to black
+  $("fade").style.opacity = Math.max(1 - prog(t, 0, 0.5, E.soft), prog(t, 59.3, 60, E.soft));
+}
+
+window.seek = seek;
+window.READY = (async () => {
+  await document.fonts.ready;
+  await Promise.all(Object.values(imgs).map((i) => i.decode().catch(() => {})));
+  $("sheet").querySelector("img").decode().catch(() => {});
+  lockupW = $("lockup").offsetWidth; lockupH = $("lockup").offsetHeight;
+  layoutPills();
+  seek(0);
+  return true;
+})();
+
+// Live preview: open comp.html (no ?render) to play in real time; ?t=12.3 to freeze a frame.
+const q = new URLSearchParams(location.search);
+if (!q.has("render")) {
+  window.READY.then(() => {
+    if (q.has("t")) return seek(+q.get("t"));
+    const start = performance.now(), from = +(q.get("from") ?? 0);
+    const loop = () => { seek(from + (performance.now() - start) / 1000); requestAnimationFrame(loop); };
+    loop();
+  });
+}
+</script>
+</body>
+</html>

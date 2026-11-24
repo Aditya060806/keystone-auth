@@ -2,6 +2,8 @@
 
 **Live demo: https://keystone-auth.vercel.app** (demo mode: codes are shown on screen instead of being emailed or texted)
 
+**60-second demo video:** [video/out/keystone-demo.mp4](video/out/keystone-demo.mp4) (sign-up, codes, passkeys and the one-device rule, made from real screenshots of the app)
+
 Passwordless authentication in Next.js and TypeScript:
 
 1. **Sign-up** with an email address *or* a phone number, plus surname and date of birth.
@@ -219,6 +221,8 @@ src/
     validation.ts                 identifier / surname / DOB rules
     http.ts                       route wrapper: origin check, typed errors
 drizzle/                          SQL migrations
+video/                          60 s demo video: capture.mjs (screenshots the real app),
+                                  comp.html (timeline), render-all.sh (renders the MP4)
 tests/
   unit.test.ts                    validation, crypto, helpers
   auth-flow.test.ts               codes, rate limits, single device (real Postgres via PGlite)
