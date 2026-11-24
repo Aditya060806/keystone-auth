@@ -1,5 +1,7 @@
 # Keystone
 
+**Live demo: https://keystone-auth.vercel.app** (demo mode: codes are shown on screen instead of being emailed or texted)
+
 Passwordless authentication in Next.js and TypeScript:
 
 1. **Sign-up** with an email address *or* a phone number, plus surname and date of birth.
